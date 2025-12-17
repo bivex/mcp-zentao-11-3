@@ -1,0 +1,815 @@
+/**
+ * 禅道旧版API (11.x版本)
+ * 使用Session认证方式
+ */
+import axios from 'axios';
+export class ZentaoLegacyAPI {
+    constructor(config) {
+        this.sessionId = null;
+        this.config = config;
+        // 禅道11.x使用的是传统的URL格式，不是RESTful API
+        this.client = axios.create({
+            baseURL: this.config.url,
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+    }
+    /**
+     * 获取SessionID
+     */
+    async getSessionId() {
+        if (this.sessionId)
+            return this.sessionId;
+        try {
+            const response = await this.client.get('/api-getSessionID.json');
+            if (response.data.status === 'success') {
+                const data = JSON.parse(response.data.data);
+                this.sessionId = data.sessionID;
+                return this.sessionId;
+            }
+            throw new Error(`获取SessionID失败: ${JSON.stringify(response.data)}`);
+        }
+        catch (error) {
+            if (axios.isAxiosError(error)) {
+                const errorMessage = error.response
+                    ? `状态码: ${error.response.status}, 响应: ${JSON.stringify(error.response.data)}`
+                    : error.message;
+                throw new Error(`获取SessionID失败: ${errorMessage}`);
+            }
+            throw error;
+        }
+    }
+    /**
+     * 登录
+     */
+    async login() {
+        const sid = await this.getSessionId();
+        try {
+            const params = new URLSearchParams();
+            params.append('account', this.config.username);
+            params.append('password', this.config.password);
+            params.append('keepLogin[]', 'on');
+            params.append('referer', `${this.config.url}/my/`);
+            const response = await this.client.post(`/user-login.json?zentaosid=${sid}`, params);
+            if (response.data.status === 'success') {
+                return;
+            }
+            throw new Error(`登录失败: ${JSON.stringify(response.data)}`);
+        }
+        catch (error) {
+            if (axios.isAxiosError(error)) {
+                const errorMessage = error.response
+                    ? `状态码: ${error.response.status}, 响应: ${JSON.stringify(error.response.data)}`
+                    : error.message;
+                throw new Error(`登录失败: ${errorMessage}`);
+            }
+            throw error;
+        }
+    }
+    /**
+     * 确保已登录
+     */
+    async ensureLoggedIn() {
+        if (!this.sessionId) {
+            await this.login();
+        }
+        return this.sessionId;
+    }
+    /**
+     * 发起请求
+     */
+    async request(url, params) {
+        const sid = await this.ensureLoggedIn();
+        try {
+            const fullUrl = `${url}?zentaosid=${sid}`;
+            const response = await this.client.get(fullUrl, { params });
+            if (response.data.status === 'success') {
+                return JSON.parse(response.data.data);
+            }
+            throw new Error(`请求失败: ${JSON.stringify(response.data)}`);
+        }
+        catch (error) {
+            if (axios.isAxiosError(error)) {
+                console.error('请求失败:', {
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    message: error.message
+                });
+                throw new Error(`请求失败: ${error.message}`);
+            }
+            throw error;
+        }
+    }
+    /**
+     * POST请求
+     */
+    async postRequest(url, data) {
+        const sid = await this.ensureLoggedIn();
+        try {
+            const fullUrl = `${url}?zentaosid=${sid}`;
+            const params = new URLSearchParams();
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    params.append(key, data[key]);
+                });
+            }
+            const response = await this.client.post(fullUrl, params);
+            if (response.data.status === 'success') {
+                return response.data.data ? JSON.parse(response.data.data) : response.data;
+            }
+            throw new Error(`请求失败: ${JSON.stringify(response.data)}`);
+        }
+        catch (error) {
+            if (axios.isAxiosError(error)) {
+                console.error('请求失败:', {
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    message: error.message
+                });
+                throw new Error(`请求失败: ${error.message}`);
+            }
+            throw error;
+        }
+    }
+    /**
+     * 获取产品列表
+     */
+    async getProducts() {
+        const data = await this.request('/product-index-no.json');
+        const products = data.products || {};
+        return Object.keys(products).map(id => ({
+            id: parseInt(id),
+            name: products[id],
+            code: '',
+            status: 'normal',
+            desc: ''
+        }));
+    }
+    /**
+     * 获取产品的模块树
+     * @param productId 产品ID
+     * @returns 模块树对象，key是模块ID，value是模块名称
+     */
+    async getProductModules(productId) {
+        try {
+            // 尝试多个可能的API路径
+            const paths = [
+                `/product-browse-${productId}.json`, // 产品浏览页面
+                `/story-create-${productId}.json`, // 创建需求页面（包含模块树）
+            ];
+            for (const apiPath of paths) {
+                try {
+                    const data = await this.request(apiPath);
+                    const modules = data.modules || data.moduleTree || {};
+                    if (Object.keys(modules).length > 0) {
+                        // modules 格式: { "1296": "家族养成游戏道具兑换——肖仲政", ... }
+                        return modules;
+                    }
+                }
+                catch (err) {
+                    // 继续尝试下一个路径
+                    continue;
+                }
+            }
+            return {};
+        }
+        catch (error) {
+            console.error(`获取产品${productId}的模块树失败:`, error);
+            return {};
+        }
+    }
+    /**
+     * 获取我的任务列表
+     */
+    async getMyTasks() {
+        const data = await this.request('/my-task.json');
+        const tasks = data.tasks || {};
+        return Object.values(tasks).map((task) => ({
+            id: parseInt(task.id),
+            name: task.name,
+            status: task.status,
+            pri: parseInt(task.pri),
+            deadline: task.deadline,
+            desc: task.desc || '',
+        }));
+    }
+    /**
+     * 获取任务详情
+     */
+    async getTaskDetail(taskId) {
+        const data = await this.request(`/task-view-${taskId}.json`);
+        const task = data.task;
+        return {
+            id: parseInt(task.id),
+            name: task.name,
+            status: task.status,
+            pri: parseInt(task.pri),
+            deadline: task.deadline,
+            desc: task.desc || '',
+            story: task.story || undefined,
+            product: task.product || undefined,
+        };
+    }
+    /**
+     * 获取我的Bug列表
+     */
+    async getMyBugs() {
+        const data = await this.request('/my-bug.json');
+        const bugs = data.bugs || {};
+        return Object.values(bugs).map((bug) => ({
+            id: parseInt(bug.id),
+            title: bug.title,
+            status: bug.status,
+            severity: parseInt(bug.severity),
+            steps: bug.steps || '',
+            openedDate: bug.openedDate,
+        }));
+    }
+    /**
+     * 获取Bug详情
+     */
+    async getBugDetail(bugId) {
+        const data = await this.request(`/bug-view-${bugId}.json`);
+        const bug = data.bug;
+        const product = data.product;
+        return {
+            id: parseInt(bug.id),
+            title: bug.title,
+            status: bug.status,
+            severity: parseInt(bug.severity),
+            steps: bug.steps || '',
+            openedDate: bug.openedDate,
+            story: bug.story || undefined,
+            product: bug.product || undefined,
+            productName: product?.name || undefined,
+        };
+    }
+    /**
+     * 更新任务
+     */
+    async updateTask(taskId, update) {
+        await this.postRequest(`/task-edit-${taskId}.json`, {
+            consumed: update.consumed,
+            left: update.left,
+            status: update.status,
+            comment: update.comment || '',
+        });
+        // 返回更新后的任务详情
+        return await this.getTaskDetail(taskId);
+    }
+    /**
+     * 完成任务
+     */
+    async finishTask(taskId, update) {
+        await this.postRequest(`/task-finish-${taskId}.json`, {
+            consumed: update.consumed || 0,
+            finishedDate: update.finishedDate || new Date().toISOString().split('T')[0],
+            comment: update.comment || '',
+        });
+    }
+    /**
+     * 解决Bug
+     */
+    async resolveBug(bugId, resolution) {
+        await this.postRequest(`/bug-resolve-${bugId}.json`, {
+            resolution: resolution.resolution,
+            resolvedBuild: resolution.resolvedBuild || '',
+            comment: resolution.comment || '',
+        });
+    }
+    /**
+     * 获取产品的需求列表（支持分页，自动获取所有需求）
+     */
+    async getProductStories(productId, status) {
+        // 禅道11.x API分页支持：
+        // URL格式：/product-browse-{productId}-{branch}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.json
+        // 参数说明：
+        // - productId: 产品ID
+        // - branch: 分支（默认0）
+        // - browseType: unclosed(未关闭) | all(全部) | active(激活) | draft(草稿) | closed(已关闭) | changed(已变更)
+        // - param: 模块ID或查询ID（默认0）
+        // - orderBy: 排序字段（默认id_desc）
+        // - recTotal: 总记录数（可以为0，系统会自动计算）
+        // - recPerPage: 每页记录数（默认20，可以设置更大值如100、500）
+        // - pageID: 页码（从1开始）
+        const allStories = [];
+        let currentPage = 1;
+        const pageSize = 100; // 每页获取100条
+        let hasMore = true;
+        // 映射status参数到browseType
+        // 注意：禅道11.x的browseType只支持简单的值，不像RESTful API那样复杂
+        let browseType = 'unclosed'; // 默认获取未关闭的需求
+        if (status) {
+            switch (status) {
+                case 'all':
+                    browseType = 'unclosed'; // 11.x中all返回0条，所以用unclosed代替
+                    break;
+                case 'active':
+                    browseType = 'unclosed'; // active也映射到unclosed
+                    break;
+                case 'draft':
+                    browseType = 'unclosed'; // draft也映射到unclosed
+                    break;
+                case 'closed':
+                    browseType = 'unclosed'; // closed也映射到unclosed
+                    break;
+                case 'changed':
+                    browseType = 'unclosed'; // changed也映射到unclosed
+                    break;
+                default:
+                    browseType = 'unclosed';
+            }
+        }
+        while (hasMore) {
+            // 构建URL：/product-browse-{productId}-{branch}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.json
+            const url = `/product-browse-${productId}-0-${browseType}-0-id_desc-0-${pageSize}-${currentPage}.json`;
+            const data = await this.request(url);
+            const stories = data.stories || {};
+            const storiesArray = Object.values(stories);
+            // 添加到结果数组
+            allStories.push(...storiesArray);
+            // 检查分页信息
+            if (data.pager) {
+                const { recTotal, recPerPage, pageID } = data.pager;
+                const totalPages = Math.ceil(recTotal / recPerPage);
+                // 判断是否还有更多数据
+                hasMore = currentPage < totalPages && storiesArray.length > 0;
+            }
+            else {
+                // 没有分页信息，说明没有更多数据
+                hasMore = false;
+            }
+            currentPage++;
+            // 安全限制：最多获取100页，避免无限循环
+            if (currentPage > 100) {
+                break;
+            }
+        }
+        // 映射为标准格式
+        const mappedStories = allStories.map((story) => ({
+            id: parseInt(story.id),
+            title: story.title,
+            status: story.status,
+            pri: parseInt(story.pri),
+            stage: story.stage,
+            estimate: story.estimate ? parseFloat(story.estimate) : undefined,
+            openedBy: story.openedBy,
+            openedDate: story.openedDate,
+            assignedTo: story.assignedTo,
+            spec: story.spec || '',
+        }));
+        return mappedStories;
+    }
+    /**
+     * 获取需求详情
+     */
+    async getStoryDetail(storyId) {
+        const data = await this.request(`/story-view-${storyId}.json`);
+        const story = data.story;
+        const product = data.product;
+        // 获取模块名称
+        let moduleName;
+        // 如果有模块ID，从模块树API获取模块名称
+        if (story.module && story.module !== '0' && story.product) {
+            try {
+                const modules = await this.getProductModules(parseInt(story.product));
+                moduleName = modules[story.module];
+            }
+            catch (error) {
+                console.error('获取模块名称失败:', error);
+            }
+        }
+        return {
+            id: parseInt(story.id),
+            title: story.title,
+            status: story.status,
+            pri: parseInt(story.pri),
+            stage: story.stage,
+            estimate: story.estimate ? parseFloat(story.estimate) : undefined,
+            openedBy: story.openedBy,
+            openedDate: story.openedDate,
+            assignedTo: story.assignedTo,
+            spec: story.spec || '',
+            module: story.module,
+            moduleName: moduleName,
+            product: story.product,
+            productName: product?.name,
+        };
+    }
+    /**
+     * 下载需求中的图片文件
+     */
+    async downloadStoryImage(imageUrl) {
+        const sid = await this.ensureLoggedIn();
+        // 构建完整的图片URL
+        let fullImageUrl;
+        if (imageUrl.startsWith('/zentao/')) {
+            // 移除重复的 /zentao 前缀
+            const cleanUrl = imageUrl.replace('/zentao/', '/');
+            fullImageUrl = `${this.config.url}${cleanUrl}`;
+        }
+        else if (imageUrl.startsWith('/')) {
+            fullImageUrl = `${this.config.url}${imageUrl}`;
+        }
+        else {
+            fullImageUrl = imageUrl;
+        }
+        const response = await this.client.get(fullImageUrl, {
+            params: { zentaosid: sid },
+            responseType: 'arraybuffer',
+            timeout: 30000
+        });
+        return Buffer.from(response.data);
+    }
+    /**
+     * 提取需求描述中的所有图片URL
+     */
+    extractImageUrls(spec) {
+        const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
+        const images = [];
+        let match;
+        while ((match = imgRegex.exec(spec)) !== null) {
+            images.push(match[1]);
+        }
+        return images;
+    }
+    /**
+     * 提取需求描述中的文件ID
+     */
+    extractFileIds(spec) {
+        const fileRegex = /file-read-(\d+)/g;
+        const fileIds = [];
+        let match;
+        while ((match = fileRegex.exec(spec)) !== null) {
+            fileIds.push(match[1]);
+        }
+        return fileIds;
+    }
+    /**
+     * 搜索需求（通过关键字）
+     * 由于禅道11.3的搜索API权限限制，我们通过获取所有产品的需求然后本地过滤
+     */
+    async searchStories(keyword, options) {
+        const { productId, status, limit = 50 } = options || {};
+        try {
+            let allStories = [];
+            if (productId) {
+                // 搜索指定产品的需求
+                allStories = await this.getProductStories(productId, status);
+            }
+            else {
+                // 搜索所有产品的需求
+                const products = await this.getProducts();
+                // 限制搜索范围，避免请求过多
+                const searchProducts = products.slice(0, 20); // 只搜索前20个产品
+                for (const product of searchProducts) {
+                    try {
+                        const stories = await this.getProductStories(product.id, status);
+                        allStories.push(...stories);
+                    }
+                    catch (error) {
+                        continue;
+                    }
+                }
+            }
+            // 本地过滤：按关键字搜索
+            const keyword_lower = keyword.toLowerCase();
+            const matchedStories = allStories.filter(story => {
+                // 在标题、描述中搜索关键字
+                const titleMatch = story.title.toLowerCase().includes(keyword_lower);
+                const specMatch = story.spec && story.spec.toLowerCase().includes(keyword_lower);
+                return titleMatch || specMatch;
+            });
+            // 按相关性排序（标题匹配优先）
+            matchedStories.sort((a, b) => {
+                const aTitle = a.title.toLowerCase().includes(keyword_lower);
+                const bTitle = b.title.toLowerCase().includes(keyword_lower);
+                if (aTitle && !bTitle)
+                    return -1;
+                if (!aTitle && bTitle)
+                    return 1;
+                // 都匹配标题或都不匹配标题，按ID倒序（新的在前）
+                return b.id - a.id;
+            });
+            // 限制返回数量
+            return matchedStories.slice(0, limit);
+        }
+        catch (error) {
+            console.error('搜索需求失败:', error);
+            throw new Error(`搜索需求失败: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * 按产品名称搜索需求
+     */
+    async searchStoriesByProductName(productName, keyword, options) {
+        try {
+            // 获取所有产品
+            const products = await this.getProducts();
+            // 按产品名称过滤
+            const matchedProducts = products.filter(product => product.name.toLowerCase().includes(productName.toLowerCase()));
+            const results = [];
+            for (const product of matchedProducts) {
+                try {
+                    const stories = await this.searchStories(keyword, {
+                        productId: product.id,
+                        status: options?.status,
+                        limit: options?.limit
+                    });
+                    if (stories.length > 0) {
+                        results.push({ product, stories });
+                    }
+                }
+                catch (error) {
+                    continue;
+                }
+            }
+            return results;
+        }
+        catch (error) {
+            console.error('按产品名称搜索需求失败:', error);
+            throw new Error(`按产品名称搜索需求失败: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * 获取产品的测试用例列表
+     * @param productId 产品ID
+     * @param status 用例状态
+     * @param moduleId 模块ID（可选）
+     */
+    async getProductTestCases(productId, status, moduleId) {
+        try {
+            // 禅道11.x API路径：/testcase-browse-{productId}-{branch}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.json
+            // 当 browseType = 'byModule' 时，param 是模块ID
+            // 当 browseType 是状态时，param 是 0
+            let browseType;
+            let param;
+            if (moduleId) {
+                // 按模块浏览
+                browseType = 'byModule';
+                param = moduleId;
+            }
+            else if (status && status !== 'all') {
+                // 按状态浏览
+                browseType = status;
+                param = 0;
+            }
+            else {
+                // 浏览全部
+                browseType = 'all';
+                param = 0;
+            }
+            const url = `/testcase-browse-${productId}-0-${browseType}-${param}-id_desc-0-100-1.json`;
+            const data = await this.request(url);
+            const cases = data.cases || {};
+            const casesArray = Object.values(cases);
+            const mappedCases = casesArray.map((testCase) => ({
+                id: parseInt(testCase.id),
+                product: parseInt(testCase.product),
+                module: testCase.module ? parseInt(testCase.module) : undefined,
+                story: testCase.story ? parseInt(testCase.story) : undefined,
+                title: testCase.title,
+                type: testCase.type,
+                pri: parseInt(testCase.pri),
+                status: testCase.status,
+                precondition: testCase.precondition || '',
+                steps: testCase.steps || '',
+                openedBy: testCase.openedBy,
+                openedDate: testCase.openedDate,
+                lastEditedBy: testCase.lastEditedBy,
+                lastEditedDate: testCase.lastEditedDate,
+            }));
+            return mappedCases;
+        }
+        catch (error) {
+            console.error('获取测试用例列表失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 获取测试用例详情
+     */
+    async getTestCaseDetail(caseId) {
+        try {
+            const data = await this.request(`/testcase-view-${caseId}.json`);
+            const testCase = data.case;
+            return {
+                id: parseInt(testCase.id),
+                product: parseInt(testCase.product),
+                productName: data.product?.name,
+                module: testCase.module ? parseInt(testCase.module) : undefined,
+                moduleName: testCase.moduleName,
+                story: testCase.story ? parseInt(testCase.story) : undefined,
+                title: testCase.title,
+                type: testCase.type,
+                pri: parseInt(testCase.pri),
+                status: testCase.status,
+                precondition: testCase.precondition || '',
+                steps: testCase.steps || '',
+                openedBy: testCase.openedBy,
+                openedDate: testCase.openedDate,
+                lastEditedBy: testCase.lastEditedBy,
+                lastEditedDate: testCase.lastEditedDate,
+            };
+        }
+        catch (error) {
+            console.error('获取测试用例详情失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 创建测试用例
+     */
+    async createTestCase(testCase) {
+        try {
+            const data = await this.postRequest(`/testcase-create-${testCase.product}.json`, {
+                title: testCase.title,
+                type: testCase.type || 'feature',
+                pri: testCase.pri || 3,
+                module: testCase.module || 0,
+                story: testCase.story || 0,
+                precondition: testCase.precondition || '',
+                steps: testCase.steps || '',
+                status: testCase.status || 'normal',
+            });
+            // 从响应中提取测试用例ID
+            return data.id || 0;
+        }
+        catch (error) {
+            console.error('创建测试用例失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 获取需求的测试用例
+     */
+    async getStoryTestCases(storyId) {
+        try {
+            const data = await this.request(`/story-view-${storyId}.json`);
+            const cases = data.cases || {};
+            const casesArray = Object.values(cases);
+            const mappedCases = casesArray.map((testCase) => ({
+                id: parseInt(testCase.id),
+                title: testCase.title,
+                type: testCase.type,
+                pri: parseInt(testCase.pri),
+                status: testCase.status,
+            }));
+            return mappedCases;
+        }
+        catch (error) {
+            console.error('获取需求测试用例失败:', error);
+            return [];
+        }
+    }
+    /**
+     * 获取测试单列表
+     */
+    async getTestTasks(productId) {
+        try {
+            // 禅道11.x API路径：/testtask-browse-{productId}.json
+            const url = productId ? `/testtask-browse-${productId}.json` : '/my-testtask.json';
+            const data = await this.request(url);
+            const tasks = data.tasks || {};
+            const tasksArray = Object.values(tasks);
+            const mappedTasks = tasksArray.map((task) => ({
+                id: parseInt(task.id),
+                name: task.name,
+                product: parseInt(task.product),
+                productName: task.productName,
+                project: task.project ? parseInt(task.project) : undefined,
+                execution: task.execution ? parseInt(task.execution) : undefined,
+                build: task.build,
+                owner: task.owner,
+                status: task.status,
+                begin: task.begin,
+                end: task.end,
+                desc: task.desc || '',
+            }));
+            return mappedTasks;
+        }
+        catch (error) {
+            console.error('获取测试单列表失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 获取测试单详情
+     */
+    async getTestTaskDetail(taskId) {
+        try {
+            const data = await this.request(`/testtask-view-${taskId}.json`);
+            const task = data.task;
+            return {
+                id: parseInt(task.id),
+                name: task.name,
+                product: parseInt(task.product),
+                productName: data.product?.name,
+                project: task.project ? parseInt(task.project) : undefined,
+                execution: task.execution ? parseInt(task.execution) : undefined,
+                build: task.build,
+                owner: task.owner,
+                status: task.status,
+                begin: task.begin,
+                end: task.end,
+                desc: task.desc || '',
+            };
+        }
+        catch (error) {
+            console.error('获取测试单详情失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 获取测试单的测试结果
+     */
+    async getTestTaskResults(taskId) {
+        try {
+            const data = await this.request(`/testtask-cases-${taskId}.json`);
+            const runs = data.runs || {};
+            const runsArray = Object.values(runs);
+            const mappedResults = runsArray.map((run) => ({
+                id: parseInt(run.id),
+                run: parseInt(run.task),
+                case: parseInt(run.case),
+                caseTitle: run.title,
+                version: parseInt(run.version),
+                status: run.caseStatus,
+                lastRunner: run.lastRunner,
+                lastRunDate: run.lastRunDate,
+                lastRunResult: run.lastRunResult,
+            }));
+            return mappedResults;
+        }
+        catch (error) {
+            console.error('获取测试结果失败:', error);
+            return [];
+        }
+    }
+    /**
+     * 执行测试用例
+     */
+    async runTestCase(taskId, testRun) {
+        try {
+            await this.postRequest(`/testtask-runCase-${taskId}-${testRun.caseId}.json`, {
+                version: testRun.version || 1,
+                caseResult: testRun.result,
+                steps: testRun.steps || '',
+                comment: testRun.comment || '',
+            });
+        }
+        catch (error) {
+            console.error('执行测试用例失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 获取需求关联的 Bug 列表
+     */
+    async getStoryRelatedBugs(storyId) {
+        try {
+            // 获取所有 Bug，然后过滤出关联到该需求的 Bug
+            const allBugs = await this.getMyBugs();
+            const relatedBugs = [];
+            // 并行获取所有 Bug 的详情以检查关联关系
+            const bugDetailsPromises = allBugs.map(bug => this.getBugDetail(bug.id).catch(() => null));
+            const bugDetails = await Promise.all(bugDetailsPromises);
+            for (const bugDetail of bugDetails) {
+                if (bugDetail && bugDetail.story) {
+                    const bugStoryId = typeof bugDetail.story === 'string'
+                        ? parseInt(bugDetail.story)
+                        : bugDetail.story;
+                    if (bugStoryId === storyId) {
+                        relatedBugs.push(bugDetail);
+                    }
+                }
+            }
+            return relatedBugs;
+        }
+        catch (error) {
+            console.error(`获取需求 ${storyId} 关联的 Bug 失败:`, error);
+            throw error;
+        }
+    }
+    /**
+     * 获取 Bug 关联的需求
+     */
+    async getBugRelatedStory(bugId) {
+        try {
+            const bug = await this.getBugDetail(bugId);
+            if (!bug.story) {
+                return null;
+            }
+            const storyId = typeof bug.story === 'string'
+                ? parseInt(bug.story)
+                : bug.story;
+            return await this.getStoryDetail(storyId);
+        }
+        catch (error) {
+            console.error(`获取 Bug ${bugId} 关联的需求失败:`, error);
+            return null;
+        }
+    }
+}
