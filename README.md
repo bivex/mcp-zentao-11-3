@@ -15,27 +15,7 @@
 
 ## 📦 安装
 
-### 方法 1：使用 npx（推荐）
-
-在支持 MCP 的 IDE/工具配置文件中添加（以 Cursor IDE 为例）：
-
-```json
-{
-  "mcpServers": {
-    "zentao-11-3": {
-      "command": "npx",
-      "args": ["-y", "@maxenlin/mcp-zentao-11-3"],
-      "env": {
-        "ZENTAO_URL": "http://your-zentao-url/zentao",
-        "ZENTAO_USERNAME": "your-username",
-        "ZENTAO_PASSWORD": "your-password"
-      }
-    }
-  }
-}
-```
-
-### 方法 2：本地安装
+### 方法 1：本地安装
 
 ```bash
 npm install -g @maxenlin/mcp-zentao-11-3
@@ -59,18 +39,21 @@ npm install -g @maxenlin/mcp-zentao-11-3
 }
 ```
 
-## ⚙️ 配置
+**配置说明：**
+- `ZENTAO_URL`: 禅道服务器地址（必须包含 `/zentao` 路径）
+- `ZENTAO_USERNAME`: 禅道用户名
+- `ZENTAO_PASSWORD`: 禅道密码
 
-### 方法 1：在 Cursor 配置中直接设置（推荐）
+### 方法 2：使用 npx
 
-在支持 MCP 的 IDE/工具的配置文件中，直接在 `env` 字段中填入配置（以 Cursor IDE 为例）：
+在支持 MCP 的 IDE/工具配置文件中添加（以 Cursor IDE 为例）：
 
 ```json
 {
   "mcpServers": {
     "zentao-11-3": {
-      "command": "mcp-zentao-11-3",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "@maxenlin/mcp-zentao-11-3"],
       "env": {
         "ZENTAO_URL": "http://your-zentao-url/zentao",
         "ZENTAO_USERNAME": "your-username",
@@ -85,33 +68,6 @@ npm install -g @maxenlin/mcp-zentao-11-3
 - `ZENTAO_URL`: 禅道服务器地址（必须包含 `/zentao` 路径）
 - `ZENTAO_USERNAME`: 禅道用户名
 - `ZENTAO_PASSWORD`: 禅道密码
-
-### 方法 2：使用配置文件（备选）
-
-如果不想在 Cursor 配置中直接填写密码，可以创建配置文件：
-
-**Windows:**
-```
-C:\Users\你的用户名\.zentao\config.json
-```
-
-**macOS/Linux:**
-```
-~/.zentao/config.json
-```
-
-配置文件内容：
-
-```json
-{
-  "url": "http://your-zentao-url/zentao",
-  "username": "your-username",
-  "password": "your-password",
-  "apiVersion": "legacy"
-}
-```
-
-**注意：** 环境变量配置优先于配置文件。如果同时设置了环境变量和配置文件，将使用环境变量中的配置。
 
 ## 🚀 使用
 
@@ -176,70 +132,84 @@ C:\Users\你的用户名\.zentao\config.json
 ## 📋 可用工具
 
 ### 配置管理
+
 - `initZentao` - 初始化禅道连接
 - `getConfig` - 查看配置信息
 
 ### 任务管理
+
 - `getMyTasks` - 获取我的任务列表
 - `getTaskDetail` - 获取任务详情
 - `updateTask` - 更新任务
 - `finishTask` - 完成任务
 
 ### Bug 管理
+
 - `getMyBugs` - 获取我的Bug列表
 - `getBugDetail` - 获取Bug详情
 - `resolveBug` - 解决Bug
 
 ### 产品管理
+
 - `getProducts` - 获取产品列表
 
 ### 需求管理
+
 - `getProductStories` - 获取产品的需求列表
 - `getStoryDetail` - 获取需求详情
 - `searchStories` - 搜索需求
 - `searchStoriesByProductName` - 按产品名称搜索需求
 
 ### 测试用例管理
+
 - `getProductTestCases` - 获取产品的测试用例
 - `getTestCaseDetail` - 获取测试用例详情
 - `createTestCase` - 创建测试用例
 - `getStoryTestCases` - 获取需求的测试用例
 
 ### 测试单管理
+
 - `getTestTasks` - 获取测试单列表
 - `getTestTaskDetail` - 获取测试单详情
 - `getTestTaskResults` - 获取测试单的测试结果
 - `runTestCase` - 执行测试用例
 
 ### 关联关系查询
+
 - `getStoryRelatedBugs` - 获取需求关联的 Bug 列表
 - `getBugRelatedStory` - 获取 Bug 关联的需求
 
 ### 批量操作
+
 - `batchUpdateTasks` - 批量更新任务
 - `batchResolveBugs` - 批量解决 Bug
 
 ### 数据统计
+
 - `getMyTaskStatistics` - 获取我的任务统计信息
 - `getMyBugStatistics` - 获取我的 Bug 统计信息
 
 ### AI 编程辅助功能
+
 - `getDevelopmentContext` - 获取需求/Bug 的完整开发上下文（包含关联信息）
 - `generateStorySummary` - 生成需求摘要（支持 JSON/Markdown/文本格式）
 - `generateBugSummary` - 生成 Bug 摘要（支持 JSON/Markdown/文本格式）
 - `formatTaskAsMarkdown` - 将任务格式化为 Markdown
 
 ### 智能分析功能
+
 - `analyzeStoryComplexity` - 分析需求复杂度（评分、工时估算、优先级建议）
 - `analyzeBugPriority` - 分析 Bug 优先级（评分、优先级建议）
 - `analyzeTaskWorkload` - 分析任务工作量（工时估算、难度评估）
 
 ### 代码生成提示
+
 - `generateCodePromptFromStory` - 根据需求生成代码框架提示
 - `generateTestPromptFromBug` - 根据 Bug 生成测试用例提示
 - `generateCodeReviewChecklist` - 生成代码审查检查清单
 
 ### 根据需求/Bug创建任务
+
 - `createTaskFromStory` - 根据需求创建任务（提供手动操作指南）
 - `createTaskFromBug` - 根据Bug创建修复任务（提供手动操作指南）
 
@@ -251,4 +221,3 @@ MIT
 
 - [禅道开源版 GitHub](https://github.com/easysoft/zentaopms) - 禅道官方 GitHub 仓库
 - [禅道官网](https://www.zentao.net/)
-
