@@ -1,27 +1,27 @@
 # @maxenlin/mcp-zentao-11-3
 
-禅道 11.3 Legacy 版 MCP 服务器，支持所有兼容 MCP 协议的 IDE 和工具（如 Cursor IDE、Claude Desktop、Continue 等），只支持旧版 Session API。
+Legacy version MCP server for Zentao 11.3, supporting all MCP protocol-compatible IDEs and tools (such as Cursor IDE, Claude Desktop, Continue, etc.), only supporting the legacy Session API.
 
-## ✨ 特性
+## ✨ Features
 
-- ✅ **纯 Legacy API** - 只支持禅道 11.x 版本的 Session API
-- ✅ **功能完整** - 支持任务、Bug、需求、测试用例等完整功能
-- ✅ **AI 编程优化** - 提供完整开发上下文、格式化输出、智能摘要等功能
-- ✅ **开箱即用** - 配置简单，专注核心功能
+- ✅ **Pure Legacy API** - Only supports Session API for Zentao 11.x versions
+- ✅ **Complete Functionality** - Supports full features for tasks, bugs, stories, test cases, etc.
+- ✅ **AI Programming Optimization** - Provides complete development context, formatted output, intelligent summaries, and more
+- ✅ **Ready to Use** - Simple configuration, focused on core functionality
 
-## 📋 系统要求
+## 📋 System Requirements
 
-- **Node.js**: >= 18.0.0（推荐使用 LTS 版本）
+- **Node.js**: >= 18.0.0 (LTS version recommended)
 
-## 📦 安装
+## 📦 Installation
 
-### 方法 1：本地安装
+### Method 1: Local Installation
 
 ```bash
 npm install -g @maxenlin/mcp-zentao-11-3
 ```
 
-然后在支持 MCP 的 IDE/工具配置文件中添加（以 Cursor IDE 为例）：
+Then add the following to your MCP-compatible IDE/tool configuration file (using Cursor IDE as an example):
 
 ```json
 {
@@ -39,14 +39,14 @@ npm install -g @maxenlin/mcp-zentao-11-3
 }
 ```
 
-**配置说明：**
-- `ZENTAO_URL`: 禅道服务器地址（必须包含 `/zentao` 路径）
-- `ZENTAO_USERNAME`: 禅道用户名
-- `ZENTAO_PASSWORD`: 禅道密码
+**Configuration Notes:**
+- `ZENTAO_URL`: Zentao server URL (must include `/zentao` path)
+- `ZENTAO_USERNAME`: Zentao username
+- `ZENTAO_PASSWORD`: Zentao password
 
-### 方法 2：使用 npx
+### Method 2: Using npx
 
-在支持 MCP 的 IDE/工具配置文件中添加（以 Cursor IDE 为例）：
+Add the following to your MCP-compatible IDE/tool configuration file (using Cursor IDE as an example):
 
 ```json
 {
@@ -64,160 +64,160 @@ npm install -g @maxenlin/mcp-zentao-11-3
 }
 ```
 
-**配置说明：**
-- `ZENTAO_URL`: 禅道服务器地址（必须包含 `/zentao` 路径）
-- `ZENTAO_USERNAME`: 禅道用户名
-- `ZENTAO_PASSWORD`: 禅道密码
+**Configuration Notes:**
+- `ZENTAO_URL`: Zentao server URL (must include `/zentao` path)
+- `ZENTAO_USERNAME`: Zentao username
+- `ZENTAO_PASSWORD`: Zentao password
 
-## 🚀 使用
+## 🚀 Usage
 
-配置完成后，重启您的 IDE/工具即可使用。
+After completing the configuration, restart your IDE/tool to use it.
 
-### 基础功能
-
-```
-获取我的任务
-获取我的Bug
-获取所有产品列表
-获取产品230的需求列表
-查看需求2508的详情
-```
-
-### 关联关系查询
+### Basic Features
 
 ```
-获取需求2508关联的所有Bug
-查看Bug 20692关联的需求
+Get my tasks
+Get my bugs
+Get all product list
+Get story list for product 230
+View details of story 2508
 ```
 
-### 批量操作
+### Relationship Queries
 
 ```
-批量更新任务状态为进行中
-批量解决Bug，标记为已修复
+Get all bugs related to story 2508
+View the story related to bug 20692
 ```
 
-### 数据统计
+### Batch Operations
 
 ```
-查看我的任务统计
-查看我的Bug统计
+Batch update task status to in progress
+Batch resolve bugs, mark as fixed
 ```
 
-### AI 编程辅助
+### Data Statistics
 
 ```
-获取需求2508的完整开发上下文（包含关联的Bug和测试用例）
-生成需求2508的Markdown摘要
-生成Bug 20692的Markdown摘要
-格式化任务123为Markdown
+View my task statistics
+View my bug statistics
 ```
 
-### 智能分析
+### AI Programming Assistance
 
 ```
-分析需求2508的复杂度
-分析Bug 20692的优先级
-分析任务123的工作量
+Get complete development context for story 2508 (including related bugs and test cases)
+Generate Markdown summary for story 2508
+Generate Markdown summary for bug 20692
+Format task 123 as Markdown
 ```
 
-### 代码生成提示
+### Intelligent Analysis
 
 ```
-根据需求2508生成代码框架提示
-根据Bug 20692生成测试用例提示
-生成需求2508的代码审查检查清单
+Analyze complexity of story 2508
+Analyze priority of bug 20692
+Analyze workload of task 123
 ```
 
-## 📋 可用工具
+### Code Generation Prompts
 
-### 配置管理
+```
+Generate code framework prompt based on story 2508
+Generate test case prompt based on bug 20692
+Generate code review checklist for story 2508
+```
 
-- `initZentao` - 初始化禅道连接
-- `getConfig` - 查看配置信息
+## 📋 Available Tools
 
-### 任务管理
+### Configuration Management
 
-- `getMyTasks` - 获取我的任务列表
-- `getTaskDetail` - 获取任务详情
-- `updateTask` - 更新任务
-- `finishTask` - 完成任务
+- `initZentao` - Initialize Zentao connection
+- `getConfig` - View configuration information
 
-### Bug 管理
+### Task Management
 
-- `getMyBugs` - 获取我的Bug列表
-- `getBugDetail` - 获取Bug详情
-- `resolveBug` - 解决Bug
+- `getMyTasks` - Get my task list
+- `getTaskDetail` - Get task details
+- `updateTask` - Update task
+- `finishTask` - Complete task
 
-### 产品管理
+### Bug Management
 
-- `getProducts` - 获取产品列表
+- `getMyBugs` - Get my bug list
+- `getBugDetail` - Get bug details
+- `resolveBug` - Resolve bug
 
-### 需求管理
+### Product Management
 
-- `getProductStories` - 获取产品的需求列表
-- `getStoryDetail` - 获取需求详情
-- `searchStories` - 搜索需求
-- `searchStoriesByProductName` - 按产品名称搜索需求
+- `getProducts` - Get product list
 
-### 测试用例管理
+### Story Management
 
-- `getProductTestCases` - 获取产品的测试用例
-- `getTestCaseDetail` - 获取测试用例详情
-- `createTestCase` - 创建测试用例
-- `getStoryTestCases` - 获取需求的测试用例
+- `getProductStories` - Get product's story list
+- `getStoryDetail` - Get story details
+- `searchStories` - Search stories
+- `searchStoriesByProductName` - Search stories by product name
 
-### 测试单管理
+### Test Case Management
 
-- `getTestTasks` - 获取测试单列表
-- `getTestTaskDetail` - 获取测试单详情
-- `getTestTaskResults` - 获取测试单的测试结果
-- `runTestCase` - 执行测试用例
+- `getProductTestCases` - Get product's test cases
+- `getTestCaseDetail` - Get test case details
+- `createTestCase` - Create test case
+- `getStoryTestCases` - Get story's test cases
 
-### 关联关系查询
+### Test Task Management
 
-- `getStoryRelatedBugs` - 获取需求关联的 Bug 列表
-- `getBugRelatedStory` - 获取 Bug 关联的需求
+- `getTestTasks` - Get test task list
+- `getTestTaskDetail` - Get test task details
+- `getTestTaskResults` - Get test results for test task
+- `runTestCase` - Execute test case
 
-### 批量操作
+### Relationship Queries
 
-- `batchUpdateTasks` - 批量更新任务
-- `batchResolveBugs` - 批量解决 Bug
+- `getStoryRelatedBugs` - Get bug list related to story
+- `getBugRelatedStory` - Get story related to bug
 
-### 数据统计
+### Batch Operations
 
-- `getMyTaskStatistics` - 获取我的任务统计信息
-- `getMyBugStatistics` - 获取我的 Bug 统计信息
+- `batchUpdateTasks` - Batch update tasks
+- `batchResolveBugs` - Batch resolve bugs
 
-### AI 编程辅助功能
+### Data Statistics
 
-- `getDevelopmentContext` - 获取需求/Bug 的完整开发上下文（包含关联信息）
-- `generateStorySummary` - 生成需求摘要（支持 JSON/Markdown/文本格式）
-- `generateBugSummary` - 生成 Bug 摘要（支持 JSON/Markdown/文本格式）
-- `formatTaskAsMarkdown` - 将任务格式化为 Markdown
+- `getMyTaskStatistics` - Get my task statistics
+- `getMyBugStatistics` - Get my bug statistics
 
-### 智能分析功能
+### AI Programming Assistance Features
 
-- `analyzeStoryComplexity` - 分析需求复杂度（评分、工时估算、优先级建议）
-- `analyzeBugPriority` - 分析 Bug 优先级（评分、优先级建议）
-- `analyzeTaskWorkload` - 分析任务工作量（工时估算、难度评估）
+- `getDevelopmentContext` - Get complete development context for story/bug (including related information)
+- `generateStorySummary` - Generate story summary (supports JSON/Markdown/text formats)
+- `generateBugSummary` - Generate bug summary (supports JSON/Markdown/text formats)
+- `formatTaskAsMarkdown` - Format task as Markdown
 
-### 代码生成提示
+### Intelligent Analysis Features
 
-- `generateCodePromptFromStory` - 根据需求生成代码框架提示
-- `generateTestPromptFromBug` - 根据 Bug 生成测试用例提示
-- `generateCodeReviewChecklist` - 生成代码审查检查清单
+- `analyzeStoryComplexity` - Analyze story complexity (score, work hour estimate, priority recommendation)
+- `analyzeBugPriority` - Analyze bug priority (score, priority recommendation)
+- `analyzeTaskWorkload` - Analyze task workload (work hour estimate, difficulty assessment)
 
-### 根据需求/Bug创建任务
+### Code Generation Prompts
 
-- `createTaskFromStory` - 根据需求创建任务（提供手动操作指南）
-- `createTaskFromBug` - 根据Bug创建修复任务（提供手动操作指南）
+- `generateCodePromptFromStory` - Generate code framework prompt based on story
+- `generateTestPromptFromBug` - Generate test case prompt based on bug
+- `generateCodeReviewChecklist` - Generate code review checklist
 
-## 📝 许可证
+### Create Tasks Based on Story/Bug
+
+- `createTaskFromStory` - Create task based on story (provides manual operation guide)
+- `createTaskFromBug` - Create fix task based on bug (provides manual operation guide)
+
+## 📝 License
 
 MIT
 
-## 🔗 相关链接
+## 🔗 Related Links
 
-- [禅道开源版 GitHub](https://github.com/easysoft/zentaopms) - 禅道官方 GitHub 仓库
-- [禅道官网](https://www.zentao.net/)
+- [Zentao Open Source GitHub](https://github.com/easysoft/zentaopms) - Official Zentao GitHub repository
+- [Zentao Official Website](https://www.zentao.net/)
